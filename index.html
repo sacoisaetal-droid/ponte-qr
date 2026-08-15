@@ -47,37 +47,34 @@
   </div>
 
   <script>
-    // Captura os parâmetros recebidos na URL
+    // Flag para evitar múltiplos disparos simultâneos
+    let processando = false;
+
+    // Resgata os parâmetros da URL
     const urlParams = new URLSearchParams(window.location.search);
     const redirectUrl = urlParams.get('returnUrl');
     const tipo = urlParams.get('tipo') || 'Saída';
     const usuario = urlParams.get('usuario') || '';
 
     function onScanSuccess(decodedText) {
-      document.getElementById('status').innerText = "✅ Código lido: " + decodedText + ". Redirecionando...";
+      if (processando) return;
+      processando = true;
 
-      // Para a câmera
-      html5QrcodeScanner.clear().then(() => {
-        if (redirectUrl) {
-          // Garante a montagem correta da URL de retorno sem quebrar o script
-          const divisor = redirectUrl.includes('?') ? '&' : '?';
-          const destinoFinal = redirectUrl + divisor + 
-            "qrCode=" + encodeURIComponent(decodedText) + 
-            "&tipo=" + encodeURIComponent(tipo) + 
-            "&usuario=" + encodeURIComponent(usuario);
+      document.getElementById('status').innerText = "✅ Lido: " + decodedText + "\nVoltando para o App...";
 
-          // Redireciona de volta para o Apps Script
-          window.location.href = destinoFinal;
-        } else {
-          alert("QR Code Lido: " + decodedText + "\nURL de retorno não encontrada.");
-        }
-      }).catch(err => {
-        // Redireciona mesmo se houver erro ao parar a câmera
-        if (redirectUrl) {
-          const divisor = redirectUrl.includes('?') ? '&' : '?';
-          window.location.href = redirectUrl + divisor + "qrCode=" + encodeURIComponent(decodedText) + "&tipo=" + encodeURIComponent(tipo);
-        }
-      });
+      if (redirectUrl) {
+        // Formata a URL de retorno de forma limpa
+        const divisor = redirectUrl.includes('?') ? '&' : '?';
+        const linkDestino = redirectUrl + divisor + 
+          "qrCode=" + encodeURIComponent(decodedText) + 
+          "&tipo=" + encodeURIComponent(tipo) + 
+          "&usuario=" + encodeURIComponent(usuario);
+
+        // Força a navegação direta e imediata sem esperar o encerramento do leitor
+        window.location.replace(linkDestino);
+      } else {
+        alert("Código: " + decodedText + "\nURL de retorno não encontrada.");
+      }
     }
 
     const html5QrcodeScanner = new Html5QrcodeScanner(
