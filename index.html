@@ -1,173 +1,1427 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Estoque</title>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+
   <style>
-    * { box-sizing: border-box; font-family: Arial, sans-serif; }
-    body { background-color: #121212; color: #fff; margin: 0; padding: 20px; }
-    .card { background: #1e1e1e; padding: 20px; border-radius: 8px; margin-bottom: 15px; }
-    input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #333; font-size: 16px; }
-    input, select { background: #2a2a2a; color: #fff; }
-    button { background: #2563eb; color: #fff; font-weight: bold; border: none; cursor: pointer; }
-    button:active { opacity: 0.8; }
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 999; }
-    .modal-content { background: #1e1e1e; padding: 20px; border-radius: 8px; width: 90%; max-width: 400px; text-align: center; }
-    #videoCam { width: 100%; height: 250px; object-fit: cover; border-radius: 8px; background: #000; }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+html, body {
+  width: 100vw !important;
+  min-height: 100vh;
+  margin: 0 !important;
+  padding: 8px !important;
+  background: #121212;
+  color: #fff;
+  overflow-x: hidden;
+}
+
+#login, #app {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 auto;
+}
+
+/* Indicador de Carregamento (Overlay + Spinner) */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 20000;
+  color: #fff;
+  font-weight: bold;
+}
+
+.spinner {
+  width: 45px;
+  height: 45px;
+  border: 5px solid #333;
+  border-top: 5px solid #22C55E;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Botão Flutuante de Adicionar */
+.btn-flutuante {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  width: 58px;
+  height: 58px;
+  background-color: #22C55E;
+  color: white;
+  border-radius: 50%;
+  border: none;
+  font-size: 32px;
+  font-weight: bold;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  cursor: pointer;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.btn-flutuante:hover {
+  transform: scale(1.08);
+  background-color: #16a34a;
+}
+
+/* Modal Overlay Genérico */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10001;
+  padding: 15px;
+}
+
+.modal-conteudo {
+  background: #1E1E1E;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 15px;
+  padding: 20px;
+  border: 1px solid #333;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.6);
+}
+
+.modal-conteudo label {
+  font-size: 0.85em;
+  color: #aaa;
+  display: block;
+  margin-top: 8px;
+  margin-bottom: 3px;
+}
+
+.card {
+  background: #1E1E1E;
+  border-radius: 15px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+h1, h2, h3 {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 10px;
+  border: none;
+  border-radius: 10px;
+  background: #2A2A2A;
+  color: #fff;
+  font-size: 16px;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: #22C55E;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.menu {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.produto {
+  background: #1E1E1E;
+  border-radius: 15px;
+  padding: 15px;
+  margin-bottom: 10px;
+}
+
+#msgLogin {
+  color: #ff6b6b;
+  text-align: center;
+  margin-top: 10px;
+}
   </style>
 </head>
+
 <body>
-
-  <!-- TELA DE LOGIN -->
-  <div id="telaLogin" class="card">
-    <h2>🔐 Acesso ao Sistema</h2>
-    <input type="text" id="usuario" placeholder="Usuário">
-    <input type="password" id="senha" placeholder="Senha">
-    <button onclick="fazerLogin()">Entrar</button>
+  <!-- Loader de Processamento -->
+  <div id="loader" class="loading-overlay" style="display: none;">
+    <div class="spinner"></div>
+    <span id="loaderTexto">Processando...</span>
   </div>
 
-  <!-- PAINEL PRINCIPAL -->
-  <div id="painelPrincipal" style="display: none;">
+  <!-- Tela de Login -->
+  <div id="login">
     <div class="card">
-      <h3>📦 Gestão de Estoque</h3>
-      <button onclick="abrirLeitorQR('Saída')" style="background: #dc2626;">➖ Registrar Saída (QR Code)</button>
-      <button onclick="abrirLeitorQR('Entrada')" style="background: #16a34a;">➕ Registrar Entrada (QR Code)</button>
-      <button onclick="carregarDashboard()" style="background: #4f46e5;">📊 Atualizar Dashboard</button>
-    </div>
-
-    <div class="card" id="areaDashboard">
-      <h4>Status do Estoque</h4>
-      <p id="infoDashboard">Carregando dados...</p>
+      <h1>MR ESTOQUE</h1>
+      <input type="text" id="usuario" placeholder="Usuário">
+      <input type="password" id="senha" placeholder="Senha">
+      <button type="button" onclick="login()">Entrar</button>
+      <div id="msgLogin"></div>
     </div>
   </div>
 
-  <!-- MODAL DA CÂMERA AO VIVO -->
-  <div id="modalCameraAoVivo" class="modal">
-    <div class="modal-content">
-      <h3 id="tituloCamAoVivo">📷 Escanear QR Code</h3>
-      <video id="videoCam" playsinline></video>
-      <canvas id="canvasAux" style="display: none;"></canvas>
-      <button onclick="pararCameraETempoReal()" style="background: #6b7280; margin-top: 10px;">Cancelar</button>
+  <!-- Painel Principal -->
+  <div id="app" style="display:none;">
+    <div class="card">
+      <h2>MR ESTOQUE</h2>
+      <div id="dadosUsuario" style="text-align: center; margin-bottom: 15px; color: #00e676; font-weight: bold;"></div>
+      <div id="dashboard"></div>
+
+      <div class="menu">
+        <button onclick="limparResultados()">🔍 Buscar</button>
+        <button onclick="abrirLeitorQRPonte()" style="background: #8b5cf6;">📷 Ler QR Code</button>
+        <button onclick="carregarEstoqueBaixo()">⚠️ Estoque Baixo</button>
+        <button onclick="relatorio()">📊 Relatório</button>
+        <button onclick="logout()">🚪 Sair</button>
+        <button id="btnMaisVendidas" onclick="maisVendidas()">🏆 Mais Vendidas</button>
+        <button id="btnValorEstoque" onclick="valorEstoque()">💰 Valor do Estoque</button>
+      </div>
     </div>
+
+    <!-- Campo de Busca e Autocomplete -->
+    <div class="card">
+      <div style="position: relative; width: 100%; margin-bottom: 15px;">
+        <input
+          type="text"
+          id="busca"
+          placeholder="Digite código, modelo ou descrição..."
+          oninput="filtrarAutoCompletar()"
+          autocomplete="off"
+          style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #1a1a1a; color: #fff; box-sizing: border-box;">
+
+        <div id="listaSugestoes" 
+             style="position: absolute; top: 100%; left: 0; right: 0; background: #181818; border: 1px solid #333; border-radius: 0 0 8px 8px; z-index: 9999; max-height: 250px; overflow-y: auto; display: none; box-shadow: 0px 4px 10px rgba(0,0,0,0.5);">
+        </div>
+      </div>
+    </div>
+
+    <div id="resultados"></div>
+
+    <!-- Botão Flutuante + -->
+    <button id="btnFlutuanteCad" class="btn-flutuante" onclick="abrirModalCadastro()" title="Cadastrar Novo Produto">+</button>
+
+    <!-- MODAL: Exibição do QR Code da Peça -->
+    <div id="modalQRCodeDisplay" class="modal-overlay" style="display: none;">
+      <div class="modal-conteudo" style="text-align: center;">
+        <h2 id="qrTituloModal" style="margin-top:0;">QR Code da Peça</h2>
+        <p id="qrSubtituloModal" style="color: #aaa; font-size: 0.9em; margin-bottom: 15px;"></p>
+        
+        <div style="background: #fff; padding: 15px; border-radius: 12px; display: inline-block; margin-bottom: 15px;">
+          <img id="imgQRCodeModal" src="" alt="QR Code" style="width: 200px; height: 200px; display: block;">
+        </div>
+
+        <button onclick="imprimirQRCode()" style="background: #0284c7;">
+          🖨️ Imprimir Etiquetas
+        </button>
+        <button onclick="fecharModalQRCode()" style="background: #ef4444; margin-bottom:0;">
+          ❌ Fechar
+        </button>
+      </div>
+    </div>
+
+    <!-- MODAL: Escolher operação / Ler QR Code -->
+    <div id="modalLeitorQR" class="modal-overlay" style="display: none; z-index: 15000;">
+      <div class="modal-conteudo" style="text-align: center;">
+        <h2 style="margin-top:0;">📷 Ler QR Code</h2>
+        <p style="color:#aaa; margin-bottom:18px; line-height:1.4;">
+          Primeiro escolha o tipo de movimentação. Depois a câmera será aberta para ler o QR Code da peça.
+        </p>
+
+        <button type="button" onclick="iniciarLeituraQR('Saída')"
+                style="background:#dc2626; font-size:18px; padding:15px;">
+          ➖ Saída
+        </button>
+
+        <button type="button" onclick="iniciarLeituraQR('Entrada')"
+                style="background:#16a34a; font-size:18px; padding:15px;">
+          ➕ Entrada
+        </button>
+
+        <input id="arquivoQR" type="file" accept="image/*" capture="environment"
+               onchange="processarImagemQR(this)" style="display:none;">
+
+        <p id="statusQR" style="color:#aaa; font-size:0.9em; margin:8px 0 15px;">
+          Escolha Saída ou Entrada.
+        </p>
+
+        <canvas id="canvasQR" style="display:none;"></canvas>
+
+        <button type="button" onclick="fecharLeitorQR()"
+                style="background:#ef4444; margin-bottom:0;">
+          ❌ Cancelar
+        </button>
+      </div>
+    </div>
+
+    <!-- MODAL: Confirmar movimentação após QR -->
+    <div id="modalMovQR" class="modal-overlay" style="display:none; z-index:16000;">
+      <div class="modal-conteudo">
+        <h2 id="tituloMovQR" style="margin-top:0;">Movimentação</h2>
+        <div id="produtoMovQR" style="background:#181818; border:1px solid #333; border-radius:10px; padding:14px; margin-bottom:15px;"></div>
+
+        <div id="campoTecnicoQR">
+          <label style="color:#aaa; display:block; margin-bottom:6px;">👨‍🔧 Técnico responsável *</label>
+          <select id="tecnicoQR" style="width:100%; padding:13px; border-radius:10px; background:#2A2A2A; color:#fff; border:1px solid #444; font-size:16px; margin-bottom:12px;">
+            <option value="">Carregando técnicos...</option>
+          </select>
+        </div>
+
+        <label style="color:#aaa; display:block; margin-bottom:6px;">📦 Quantidade</label>
+        <input type="number" id="quantidadeQR" min="1" step="1" value="1" style="margin-bottom:12px;">
+
+        <label style="color:#aaa; display:block; margin-bottom:6px;">📝 Observação</label>
+        <input type="text" id="observacaoQR" placeholder="Opcional" style="margin-bottom:15px;">
+
+        <button type="button" onclick="confirmarMovimentacaoQR()" style="background:#22C55E;">
+          ✅ Confirmar e dar baixa
+        </button>
+        <button type="button" onclick="fecharMovimentacaoQR()" style="background:#ef4444; margin-bottom:0;">
+          ❌ Cancelar
+        </button>
+      </div>
+    </div>
+
+    <!-- MODAL: Cadastro de Produto -->
+    <div id="modalCadastro" class="modal-overlay" style="display: none;">
+      <div class="modal-conteudo">
+        <h2 style="margin-top:0;">➕ Novo Produto</h2>
+        
+        <label>Descrição *</label>
+        <input type="text" id="cadDescricao" placeholder="Ex: Tela Display OLED">
+
+        <label>Código do Produto *</label>
+        <input type="text" id="cadCodigo" placeholder="Ex: A54-LCD">
+
+        <label>Marca</label>
+        <input type="text" id="cadMarca" placeholder="Ex: Samsung">
+
+        <label>Modelo</label>
+        <input type="text" id="cadModelo" placeholder="Ex: Galaxy A54">
+
+        <label>Compatibilidade</label>
+        <input type="text" id="cadCompatibilidade" placeholder="Ex: A546 / A546B">
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label>Estoque Inicial</label>
+            <input type="number" id="cadEstoque" value="0" min="0">
+          </div>
+          <div>
+            <label>Estoque Mínimo</label>
+            <input type="number" id="cadMinimo" value="1" min="0">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+          <div>
+            <label>Custo (R$)</label>
+            <input type="number" id="cadCusto" step="0.01" placeholder="0.00">
+          </div>
+          <div>
+            <label>Técnico (R$)</label>
+            <input type="number" id="cadTecnico" step="0.01" placeholder="0.00">
+          </div>
+          <div>
+            <label>Cliente (R$)</label>
+            <input type="number" id="cadCliente" step="0.01" placeholder="0.00">
+          </div>
+        </div>
+
+        <button onclick="salvarNovoProduto()" style="margin-top: 15px; background: #22C55E;">
+          💾 Salvar Produto
+        </button>
+        
+        <button onclick="fecharModalCadastro()" style="background: #ef4444; margin-bottom:0;">
+          ❌ Cancelar
+        </button>
+      </div>
+    </div>
+
+    <!-- MODAL: Edição de Produto -->
+    <div id="modalEdicao" class="modal-overlay" style="display: none;">
+      <div class="modal-conteudo">
+        <h2 style="margin-top:0;">✏️ Editar Produto</h2>
+        
+        <input type="hidden" id="editCodigoOriginal">
+
+        <label>Código (Não editável)</label>
+        <input type="text" id="editCodigo" disabled style="opacity: 0.6;">
+
+        <label>Descrição *</label>
+        <input type="text" id="editDescricao">
+
+        <label>Marca</label>
+        <input type="text" id="editMarca">
+
+        <label>Modelo</label>
+        <input type="text" id="editModelo">
+
+        <label>Compatibilidade</label>
+        <input type="text" id="editCompatibilidade">
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label>Estoque</label>
+            <input type="number" id="editEstoque" min="0">
+          </div>
+          <div>
+            <label>Estoque Mínimo</label>
+            <input type="number" id="editMinimo" min="0">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+          <div>
+            <label>Custo (R$)</label>
+            <input type="number" id="editCusto" step="0.01">
+          </div>
+          <div>
+            <label>Técnico (R$)</label>
+            <input type="number" id="editTecnico" step="0.01">
+          </div>
+          <div>
+            <label>Cliente (R$)</label>
+            <input type="number" id="editCliente" step="0.01">
+          </div>
+        </div>
+
+        <button onclick="salvarAlteracaoProduto()" style="margin-top: 15px; background: #22C55E;">
+          💾 Salvar Alterações
+        </button>
+        
+        <button onclick="fecharModalEdicao()" style="background: #ef4444; margin-bottom:0;">
+          ❌ Cancelar
+        </button>
+      </div>
+    </div>
+
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script>
+var usuarioLogado = "";
+var lojaLogada = "";
+var perfilLogado = "";
+var temporizadorBusca = null;
+var listaProdutosCache = [];
 
-  <script>
-    // ⚠️ COLE AQUI A URL DO SEU GOOGLE APPS SCRIPT (/exec)
-    const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbwfiIvD_nR_uIAELI-H-Qub3WcW0CTAAF1wR9HP5XefP06k2TOwHCb1rS1UirTRdruRQg/exec";
+function login() {
+  var usuarioInput = document.getElementById("usuario").value.trim();
+  var senhaInput = document.getElementById("senha").value.trim();
 
-    var streamCamera = null;
-    var animacaoFrame = null;
-    var qrOperacao = "";
+  if (!usuarioInput || !senhaInput) {
+    document.getElementById("msgLogin").innerText = "Preencha usuário e senha!";
+    return;
+  }
 
-    // CONEXÃO COM O BACKEND VIA FETCH
-    function chamarBackend(acao, parametros = {}) {
-      return fetch(URL_WEB_APP, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ acao: acao, parametros: parametros })
-      }).then(res => res.json());
+  document.getElementById("msgLogin").innerText = "";
+  exibirLoader("Autenticando...");
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      ocultarLoader();
+      
+      if (res && (res.sucesso === true || res.sucesso === "true" || res.nome)) {
+        usuarioLogado = res.nome || usuarioInput;
+        lojaLogada = res.loja || "";
+        perfilLogado = String(res.perfil || "CONSULTA").trim().toUpperCase();
+
+        document.getElementById("login").style.display = "none";
+        document.getElementById("app").style.display = "block";
+
+        document.getElementById("dadosUsuario").innerHTML =
+          "👤 " + usuarioLogado + " <small>(" + perfilLogado + ")</small>" +
+          (lojaLogada ? "<br>🏪 " + lojaLogada : "");
+
+        aplicarPermissoes();
+        carregarDashboard();
+      } else {
+        document.getElementById("msgLogin").innerText = (res && res.mensagem) ? res.mensagem : "Usuário ou senha incorretos!";
+      }
+    })
+    .withFailureHandler(function(erro) {
+      ocultarLoader();
+      console.error("Erro no login:", erro);
+      document.getElementById("msgLogin").innerText = "Erro ao conectar: " + (erro.message || erro);
+    })
+    .validarLogin(usuarioInput, senhaInput);
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  var usuario = document.getElementById("usuario");
+  var senha = document.getElementById("senha");
+
+  if (usuario) {
+    usuario.addEventListener("keydown", function(event) {
+      if (event.key === "Enter") login();
+    });
+  }
+
+  if (senha) {
+    senha.addEventListener("keydown", function(event) {
+      if (event.key === "Enter") login();
+    });
+  }
+});
+
+function aplicarPermissoes() {
+  var perfil = String(perfilLogado || "").trim().toUpperCase();
+  var ehAdmin = (perfil === "ADMIN");
+
+  var btnFlutuante = document.getElementById("btnFlutuanteCad");
+  if (btnFlutuante) {
+    btnFlutuante.style.display = ehAdmin ? "flex" : "none";
+  }
+
+  var btnMaisVendidas = document.getElementById("btnMaisVendidas");
+  var btnValorEstoque = document.getElementById("btnValorEstoque");
+
+  if (btnMaisVendidas) btnMaisVendidas.style.display = ehAdmin ? "block" : "none";
+  if (btnValorEstoque) btnValorEstoque.style.display = ehAdmin ? "block" : "none";
+}
+
+function logout() {
+  location.reload();
+}
+
+/* ================= LEITOR QR CODE + ENTRADA/SAÍDA ================= */
+
+var qrProcessando = false;
+var qrOperacao = "";
+var qrProdutoPendente = null;
+
+function abrirLeitorQRPonte() {
+  var modal = document.getElementById("modalLeitorQR");
+  var input = document.getElementById("arquivoQR");
+  var status = document.getElementById("statusQR");
+
+  qrProcessando = false;
+  qrOperacao = "";
+  qrProdutoPendente = null;
+  if (input) input.value = "";
+  if (status) status.innerText = "Escolha Saída ou Entrada.";
+  if (modal) modal.style.display = "flex";
+}
+
+function iniciarLeituraQR(tipo) {
+  qrOperacao = tipo;
+  var input = document.getElementById("arquivoQR");
+  var status = document.getElementById("statusQR");
+
+  if (!input) {
+    alert("❌ Campo da câmera não encontrado.");
+    return;
+  }
+
+  if (status) status.innerText = "📷 Abrindo câmera para " + tipo + "...";
+  input.value = "";
+
+  var modal = document.getElementById("modalLeitorQR");
+  if (modal) modal.style.display = "none";
+
+  setTimeout(function() { input.click(); }, 120);
+}
+
+function processarImagemQR(input) {
+  if (!input || !input.files || !input.files[0]) return;
+  if (!qrOperacao) {
+    alert("Escolha primeiro Saída ou Entrada.");
+    return;
+  }
+
+  var arquivo = input.files[0];
+  var status = document.getElementById("statusQR");
+  if (status) status.innerText = "🔎 Lendo o QR Code...";
+
+  if (typeof jsQR === "undefined") {
+    alert("❌ O leitor QR Code não carregou. Atualize a página e tente novamente.");
+    return;
+  }
+
+  var imagem = new Image();
+  var url = URL.createObjectURL(arquivo);
+
+  imagem.onload = function() {
+    try {
+      var canvas = document.getElementById("canvasQR");
+      var ctx = canvas.getContext("2d", { willReadFrequently: true });
+      var maxDim = 1800;
+      var escala = Math.min(1, maxDim / Math.max(imagem.naturalWidth, imagem.naturalHeight));
+      canvas.width = Math.max(1, Math.round(imagem.naturalWidth * escala));
+      canvas.height = Math.max(1, Math.round(imagem.naturalHeight * escala));
+      ctx.drawImage(imagem, 0, 0, canvas.width, canvas.height);
+
+      var dados = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      var resultado = jsQR(dados.data, dados.width, dados.height, { inversionAttempts: "attemptBoth" });
+      URL.revokeObjectURL(url);
+
+      if (resultado && resultado.data) {
+        var codigo = String(resultado.data).trim();
+        buscarProdutoParaMovimentacaoQR(codigo);
+        return;
+      }
+
+      if (status) status.innerText = "❌ QR Code não identificado.";
+      alert("❌ Não consegui identificar o QR Code. Tente fotografar mais perto e com boa iluminação.");
+    } catch (erro) {
+      URL.revokeObjectURL(url);
+      console.error("Erro ao processar QR:", erro);
+      alert("❌ Erro ao ler o QR Code: " + (erro.message || erro));
     }
+  };
 
-    // LOGIN
-    function fazerLogin() {
-      var u = document.getElementById("usuario").value;
-      var s = document.getElementById("senha").value;
+  imagem.onerror = function() {
+    URL.revokeObjectURL(url);
+    alert("❌ Não foi possível abrir a foto do QR Code.");
+  };
 
-      chamarBackend("validarLogin", { usuario: u, senha: s })
-        .then(res => {
-          if (res && res.sucesso) {
-            document.getElementById("telaLogin").style.display = "none";
-            document.getElementById("painelPrincipal").style.display = "block";
-            carregarDashboard();
-          } else {
-            alert("❌ Login incorreto: " + (res.mensagem || "Verifique os dados"));
-          }
-        })
-        .catch(err => alert("Erro ao conectar ao servidor."));
+  imagem.src = url;
+}
+
+function buscarProdutoParaMovimentacaoQR(codigo) {
+  if (qrProcessando) return;
+  qrProcessando = true;
+  exibirLoader("Buscando peça pelo QR Code...");
+
+  google.script.run
+    .withSuccessHandler(function(produto) {
+      ocultarLoader();
+      qrProcessando = false;
+
+      if (!produto) {
+        alert("❌ Produto não encontrado para o QR Code:\n" + codigo + "\n\nO QR Code precisa conter exatamente o código cadastrado na coluna B da aba PRODUTOS.");
+        abrirLeitorQRPonte();
+        return;
+      }
+
+      qrProdutoPendente = produto;
+      abrirConfirmacaoMovimentacaoQR();
+    })
+    .withFailureHandler(function(erro) {
+      ocultarLoader();
+      qrProcessando = false;
+      alert("❌ Erro na busca do produto: " + (erro && erro.message ? erro.message : erro));
+    })
+    .buscarProdutoPorCodigoExato(codigo);
+}
+
+function abrirConfirmacaoMovimentacaoQR() {
+  if (!qrProdutoPendente) return;
+
+  var produto = qrProdutoPendente;
+  var titulo = document.getElementById("tituloMovQR");
+  var box = document.getElementById("produtoMovQR");
+  var campoTecnico = document.getElementById("campoTecnicoQR");
+  var qtd = document.getElementById("quantidadeQR");
+  var obs = document.getElementById("observacaoQR");
+  var btn = document.querySelector('#modalMovQR button[onclick="confirmarMovimentacaoQR()"]');
+
+  if (titulo) titulo.innerText = qrOperacao === "Saída" ? "➖ Saída da Peça" : "➕ Entrada da Peça";
+  if (box) {
+    box.innerHTML = '<b>' + escaparHTML(produto.descricao) + '</b><br>' +
+      'Código: <b>' + escaparHTML(produto.codigo) + '</b><br>' +
+      'Estoque atual: <b>' + Number(produto.estoque || 0) + '</b>';
+  }
+  if (qtd) qtd.value = "1";
+  if (obs) obs.value = "";
+
+  if (qrOperacao === "Saída") {
+    if (campoTecnico) campoTecnico.style.display = "block";
+    if (btn) btn.innerText = "✅ Confirmar e dar baixa";
+    carregarTecnicosQR();
+  } else {
+    if (campoTecnico) campoTecnico.style.display = "none";
+    if (btn) btn.innerText = "✅ Confirmar entrada";
+  }
+
+  document.getElementById("modalMovQR").style.display = "flex";
+}
+
+function carregarTecnicosQR() {
+  var select = document.getElementById("tecnicoQR");
+  if (!select) return;
+  select.innerHTML = '<option value="">Carregando técnicos...</option>';
+
+  google.script.run
+    .withSuccessHandler(function(tecnicos) {
+      if (!tecnicos || tecnicos.length === 0) {
+        select.innerHTML = '<option value="">Nenhum técnico cadastrado</option>';
+        return;
+      }
+
+      select.innerHTML = '<option value="">Selecione o técnico</option>';
+      tecnicos.forEach(function(t) {
+        var opt = document.createElement("option");
+        opt.value = t.nome;
+        opt.textContent = t.nome + (t.usuario ? " (" + t.usuario + ")" : "");
+        select.appendChild(opt);
+      });
+    })
+    .withFailureHandler(function(erro) {
+      select.innerHTML = '<option value="">Erro ao carregar técnicos</option>';
+      alert("❌ Não foi possível carregar os técnicos: " + (erro.message || erro));
+    })
+    .listarTecnicosAtivos();
+}
+
+function confirmarMovimentacaoQR() {
+  if (!qrProdutoPendente || !qrOperacao) return;
+
+  var quantidade = Number(document.getElementById("quantidadeQR").value);
+  var observacao = document.getElementById("observacaoQR").value.trim();
+  var tecnico = "";
+
+  if (!Number.isInteger(quantidade) || quantidade <= 0) {
+    alert("⚠️ Informe uma quantidade inteira maior que zero.");
+    return;
+  }
+
+  if (qrOperacao === "Saída") {
+    tecnico = document.getElementById("tecnicoQR").value.trim();
+    if (!tecnico) {
+      alert("⚠️ Selecione o técnico responsável pela saída.");
+      return;
     }
+  } else {
+    tecnico = usuarioLogado;
+  }
 
-    // CARREGAR DASHBOARD
-    function carregarDashboard() {
-      document.getElementById("infoDashboard").innerText = "Atualizando...";
-      chamarBackend("obterDashboard")
-        .then(res => {
-          document.getElementById("infoDashboard").innerText = JSON.stringify(res, null, 2);
-        })
-        .catch(err => {
-          document.getElementById("infoDashboard").innerText = "Erro ao carregar dados.";
+  if (qrOperacao === "Saída" && quantidade > Number(qrProdutoPendente.estoque || 0)) {
+    alert("⚠️ Estoque insuficiente. Disponível: " + Number(qrProdutoPendente.estoque || 0));
+    return;
+  }
+
+  var produto = qrProdutoPendente;
+  var tipo = qrOperacao;
+  var observacaoFinal = observacao;
+
+  if (tipo === "Saída") {
+    observacaoFinal = "Técnico: " + tecnico + (observacao ? " | " + observacao : "");
+  }
+
+  exibirLoader(tipo === "Saída" ? "Dando baixa no estoque..." : "Registrando entrada...");
+
+  google.script.run
+    .withSuccessHandler(function(resposta) {
+      ocultarLoader();
+      if (resposta && resposta.sucesso) {
+        fecharMovimentacaoQR();
+        qrProdutoPendente = null;
+        qrOperacao = "";
+        document.getElementById("busca").value = "";
+        document.getElementById("resultados").innerHTML = "";
+        document.getElementById("listaSugestoes").style.display = "none";
+
+        alert("✅ " + (tipo === "Saída" ? "Saída registrada e estoque baixado!" : "Entrada registrada com sucesso!") +
+              "\n\nPeça: " + produto.descricao +
+              "\nQuantidade: " + quantidade +
+              "\nNovo estoque: " + resposta.estoque);
+
+        carregarDashboard();
+      } else {
+        alert("❌ " + (resposta ? resposta.mensagem : "Não foi possível concluir a movimentação."));
+      }
+    })
+    .withFailureHandler(function(erro) {
+      ocultarLoader();
+      alert("❌ Erro no servidor: " + (erro.message || erro));
+    })
+    .registrarMovimentacao(tipo, produto.codigo, produto.descricao, quantidade, tecnico, lojaLogada, observacaoFinal);
+}
+
+function fecharMovimentacaoQR() {
+  var modal = document.getElementById("modalMovQR");
+  if (modal) modal.style.display = "none";
+  qrProdutoPendente = null;
+}
+
+function fecharLeitorQR() {
+  var modal = document.getElementById("modalLeitorQR");
+  var input = document.getElementById("arquivoQR");
+  if (input) input.value = "";
+  if (modal) modal.style.display = "none";
+  qrProcessando = false;
+  qrOperacao = "";
+}
+
+function escaparHTML(valor) {
+  return String(valor == null ? "" : valor)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function exibirQRCodeProduto(codigo, descricao) {
+  var urlQR = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + encodeURIComponent(codigo);
+  
+  document.getElementById("qrTituloModal").innerText = "QR Code: " + codigo;
+  document.getElementById("qrSubtituloModal").innerText = descricao;
+  document.getElementById("imgQRCodeModal").src = urlQR;
+  
+  document.getElementById("modalQRCodeDisplay").style.display = "flex";
+}
+
+function fecharModalQRCode() {
+  document.getElementById("modalQRCodeDisplay").style.display = "none";
+}
+
+function imprimirQRCode() {
+  var imgSrc = document.getElementById("imgQRCodeModal").src;
+  var codigo = document.getElementById("qrTituloModal").innerText;
+  var desc = document.getElementById("qrSubtituloModal").innerText;
+
+  var janela = window.open('', '', 'width=400,height=400');
+  janela.document.write(`
+    <html>
+      <head>
+        <title>Imprimir QR Code</title>
+        <style>
+          body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+          img { width: 180px; height: 180px; margin-bottom: 10px; }
+          h3 { margin: 5px 0; font-size: 16px; }
+          p { margin: 0; font-size: 14px; color: #555; }
+        </style>
+      </head>
+      <body>
+        <img src="${imgSrc}">
+        <h3>${codigo}</h3>
+        <p>${desc}</p>
+        <script>
+          window.onload = function() { window.print(); window.close(); }
+        <\/script>
+      </body>
+    </html>
+  `);
+  janela.document.close();
+}
+
+/* ================= OPERAÇÕES DE ESTOQUE ================= */
+
+function carregarEstoqueBaixo() {
+  limparResultados();
+  exibirLoader("Buscando estoque baixo...");
+
+  google.script.run
+    .withSuccessHandler(function(produtos) {
+      ocultarLoader();
+      listaProdutosCache = produtos || [];
+      exibirCardsEstoqueBaixo(produtos);
+    })
+    .withFailureHandler(function(erro) {
+      ocultarLoader();
+      alert("Erro ao carregar estoque baixo: " + erro.message);
+    })
+    .obterEstoqueBaixo();
+}
+
+function exibirCardsEstoqueBaixo(produtos) {
+  var conteiner = document.getElementById("resultados");
+
+  if (!produtos || produtos.length === 0) {
+    conteiner.innerHTML = `
+      <div style="background: #181818; padding: 20px; border-radius: 12px; border: 1px solid #2a2a2a; text-align: center; color: #00e676;">
+        🎉 Nenhum produto com estoque baixo no momento!
+      </div>`;
+    return;
+  }
+
+  var formatarR$ = function(val) {
+    return Number(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
+  var perfil = String(perfilLogado || "").trim().toUpperCase();
+  var ehAdmin = (perfil === "ADMIN");
+
+  var html = `<div style="background: #1e1e1e; color: #ffcc00; padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 20px; border: 1px solid #333;">⚠️ Estoque Baixo (${produtos.length})</div>`;
+
+  produtos.forEach(function(item, index) {
+    var codSeguro = String(item.codigo).replace(/'/g, "\\'");
+    var descSegura = String(item.descricao).replace(/'/g, "\\'");
+    var statusTexto = item.estoque === 0 ? "🔴 INDISPONÍVEL" : "🔴 ESTOQUE BAIXO";
+
+    var urlImagemTratada = formatarUrlDrive(item.imagem);
+    var htmlImagem = urlImagemTratada 
+      ? `<div style="text-align: center; margin-bottom: 15px;">
+           <img src="${urlImagemTratada}" style="max-width: 100%; max-height: 180px; object-fit: contain; border-radius: 10px; background: #2a2a2a; padding: 5px;" alt="Imagem do Produto">
+         </div>`
+      : '';
+
+    html += `
+      <div class="card" style="background: #181818; color: #fff; padding: 20px; border-radius: 12px; border: 1px solid #2a2a2a; margin-bottom: 20px;">
+        ${htmlImagem}
+        <h2 style="text-align: center; margin-top: 0; margin-bottom: 15px; font-size: 1.3em;">${item.descricao}</h2>
+        <div style="font-size: 0.95em; line-height: 1.8; margin-bottom: 20px;">
+          <div style="color: #ff5252; font-weight: bold; margin-bottom: 5px;">${statusTexto}</div>
+          <div><b>Código:</b> ${item.codigo}</div>
+          <div>📱 <b>Modelo:</b> ${item.modelo || '-'}</div>
+          <div>📦 <b>Estoque:</b> ${item.estoque} (Mínimo: ${item.minimo})</div>
+          <div>🔄 <b>Compatível:</b> ${item.compatibilidade || '-'}</div>
+          ${ehAdmin ? `<div>💰 <b>Custo:</b> ${formatarR$(item.custo)}</div>` : ''}
+          <div>🔧 <b>Técnico:</b> ${formatarR$(item.tecnico)}</div>
+          <div>📱 <b>Cliente:</b> ${formatarR$(item.cliente)}</div>
+        </div>
+        
+        <button onclick="fazerMovimentacao('Entrada', '${codSeguro}', '${descSegura}')" style="width: 100%; background: #2e7d32; color: white; border: none; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 1em; cursor: pointer; margin-bottom: 10px;">➕ Entrada</button>
+        <button onclick="fazerMovimentacao('Saída', '${codSeguro}', '${descSegura}')" style="width: 100%; background: #2e7d32; color: white; border: none; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 1em; cursor: pointer; margin-bottom: 10px;">➖ Saída</button>
+        <button onclick="exibirQRCodeProduto('${codSeguro}', '${descSegura}')" style="width: 100%; background: #8b5cf6; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; margin-bottom: 10px; cursor: pointer;">🔲 Gerar QR Code</button>
+
+        ${ehAdmin ? `
+          <button onclick="abrirModalEdicao(${index})" style="width: 100%; background: #0284c7; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 0.9em; cursor: pointer; margin-bottom: 8px;">✏️ Editar Produto</button>
+          <button onclick="confirmarExclusao('${codSeguro}', '${descSegura}')" style="width: 100%; background: #dc2626; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 0.9em; cursor: pointer;">🗑️ Excluir Produto</button>
+        ` : ''}
+      </div>
+    `;
+  });
+
+  conteiner.innerHTML = html;
+}
+
+function limparResultados() {
+  document.getElementById("resultados").innerHTML = "";
+  document.getElementById("busca").value = "";
+  var conteinerSugestoes = document.getElementById("listaSugestoes");
+  if (conteinerSugestoes) {
+    conteinerSugestoes.style.display = "none";
+    conteinerSugestoes.innerHTML = "";
+  }
+}
+
+function carregarDashboard() {
+  google.script.run
+  .withSuccessHandler(function(d) {
+    if (!d) return;
+    document.getElementById("dashboard").innerHTML = `
+      <div class="card" style="background: #222; border: 1px solid #333;">
+        <h3 style="margin-bottom: 10px;">📊 Dashboard</h3>
+        <p>📦 Total de Produtos: <b>${d.total || 0}</b></p>
+        <p>🟢 Disponíveis: <b>${d.disponivel || 0}</b></p>
+        <p>🟡 Estoque Baixo: <b>${d.baixo || 0}</b></p>
+        <p>🔴 Sem Estoque: <b>${d.semEstoque || 0}</b></p>
+      </div>
+    `;
+  })
+  .obterDashboard();
+}
+
+function maisVendidas() {
+  var perfil = String(perfilLogado || "").trim().toUpperCase();
+  if (perfil !== "ADMIN") return;
+
+  limparResultados();
+  exibirLoader("Gerando ranking...");
+
+  google.script.run
+  .withSuccessHandler(function(lista) {
+    ocultarLoader();
+    var html = `<div class="card"><h2>🏆 Top 20 Peças Mais Vendidas</h2></div>`;
+    if (!lista || lista.length == 0) html += `<div class="card">Nenhuma saída registrada ainda.</div>`;
+    else {
+      lista.forEach(function(item, index) {
+        html += `
+          <div class="produto">
+            <h3>${index + 1}º Lugar</h3>
+            <p>${item.produto}</p>
+            <p>Quantidade vendida: <b>${item.quantidade}</b></p>
+          </div>
+        `;
+      });
+    }
+    document.getElementById("resultados").innerHTML = html;
+  })
+  .withFailureHandler(function(erro) {
+    ocultarLoader();
+    alert("Erro: " + erro.message);
+  })
+  .relatorioMaisVendidas();
+}
+
+function valorEstoque() {
+  var perfil = String(perfilLogado || "").trim().toUpperCase();
+  if (perfil !== "ADMIN") return;
+
+  limparResultados();
+  exibirLoader("Calculando estoque...");
+
+  google.script.run
+  .withSuccessHandler(function(dados) {
+    ocultarLoader();
+    if (!dados) return;
+
+    var formatarR$ = function(valor) {
+      return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    };
+
+    var html = `
+      <div class="card" style="text-align: center; margin-bottom: 15px;">
+        <h2>💰 Valor Total do Estoque</h2>
+        <p>Total de Peças Físicas: <b>${dados.totalItens || 0} un</b></p>
+      </div>
+      <div class="card" style="margin-bottom: 10px; border-left: 5px solid #ff9800;">
+        <h3>🔴 Custo Total (Investido)</h3>
+        <p style="font-size: 1.3em; font-weight: bold; color: #d32f2f;">${formatarR$(dados.totalCusto)}</p>
+      </div>
+      <div class="card" style="margin-bottom: 10px; border-left: 5px solid #2196F3;">
+        <h3>🔵 Valor Total (Preço Técnico)</h3>
+        <p style="font-size: 1.3em; font-weight: bold; color: #1976d2;">${formatarR$(dados.totalTecnico)}</p>
+      </div>
+      <div class="card" style="margin-bottom: 10px; border-left: 5px solid #4CAF50;">
+        <h3>🟢 Valor Total (Preço Cliente)</h3>
+        <p style="font-size: 1.3em; font-weight: bold; color: #388e3c;">${formatarR$(dados.totalCliente)}</p>
+      </div>
+    `;
+
+    document.getElementById("resultados").innerHTML = html;
+  })
+  .withFailureHandler(function(erro) {
+    ocultarLoader();
+    alert("Erro: " + erro.message);
+  })
+  .relatorioValorEstoque();
+}
+
+function filtrarAutoCompletar() {
+  var termo = document.getElementById("busca").value;
+  var conteinerSugestoes = document.getElementById("listaSugestoes");
+
+  clearTimeout(temporizadorBusca);
+
+  if (termo.trim().length < 2) {
+    conteinerSugestoes.style.display = "none";
+    conteinerSugestoes.innerHTML = "";
+    return;
+  }
+
+  temporizadorBusca = setTimeout(function() {
+    google.script.run
+      .withSuccessHandler(exibirSugestoesDrop)
+      .withFailureHandler(function(err) {
+        console.error("Erro na busca: ", err);
+      })
+      .buscarProdutosPorDescricao(termo);
+  }, 300);
+}
+
+function exibirLoader(mensagem) {
+  document.getElementById("loaderTexto").innerText = mensagem || "Aguarde...";
+  document.getElementById("loader").style.display = "flex";
+}
+
+function ocultarLoader() {
+  document.getElementById("loader").style.display = "none";
+}
+
+function exibirSugestoesDrop(produtos) {
+  var conteinerSugestoes = document.getElementById("listaSugestoes");
+  listaProdutosCache = produtos || [];
+
+  if (!conteinerSugestoes) return;
+
+  if (!produtos || produtos.length === 0) {
+    conteinerSugestoes.innerHTML = `<div style="padding: 12px; color: #888; text-align: center;">Nenhum produto encontrado</div>`;
+    conteinerSugestoes.style.display = "block";
+    return;
+  }
+
+  var perfil = String(perfilLogado || "").trim().toUpperCase();
+  var ehTecnico = (perfil === "TECNICO" || perfil === "TÉCNICO");
+
+  var formatarR$ = function(val) {
+    return Number(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
+  var html = "";
+  produtos.forEach(function(item, index) {
+    var modeloTexto = item.modelo ? `📱 <b>${item.modelo}</b> - ` : "";
+    
+    var precoExibicao = ehTecnico ? item.tecnico : item.cliente;
+    var textoPreco = precoExibicao ? ` | <b>${formatarR$(precoExibicao)}</b>` : "";
+
+    html += `
+      <div onclick="selecionarProduto(${index})" 
+           style="padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #2a2a2a; color: #e0e0e0; display: flex; align-items: center; justify-content: space-between;"
+           onmouseover="this.style.background='#2c2c2c'" 
+           onmouseout="this.style.background='transparent'">
+        <div style="flex: 1; padding-right: 10px;">
+          <div style="font-size: 0.95em;">${modeloTexto}<b>${item.descricao}</b></div>
+          <div style="font-size: 0.8em; color: #aaa;">Cód: ${item.codigo} ${item.marca ? '| ' + item.marca : ''}</div>
+        </div>
+        <div style="font-size: 0.85em; text-align: right; white-space: nowrap;">
+          <span style="color: ${item.estoque > 0 ? '#00e676' : '#ff5252'}; font-weight: bold;">
+            ${item.estoque} un
+          </span>
+          <span style="color: #ffcc00; font-weight: bold;">
+            ${textoPreco}
+          </span>
+        </div>
+      </div>
+    `;
+  });
+
+  conteinerSugestoes.innerHTML = html;
+  conteinerSugestoes.style.display = "block";
+}
+
+function formatarUrlDrive(url) {
+  if (!url) return "";
+  var urlLimpa = String(url).replace(/[\[\]]/g, "").trim();
+  var match = urlLimpa.match(/\/d\/([^\/\?]+)/) || urlLimpa.match(/id=([^&]+)/);
+  if (match && match[1]) {
+    return "https://lh3.googleusercontent.com/d/" + match[1];
+  }
+  return urlLimpa;
+}
+
+function selecionarProduto(index) {
+  var item = listaProdutosCache[index];
+  if (!item) return;
+  
+  document.getElementById("listaSugestoes").style.display = "none";
+  document.getElementById("busca").value = item.descricao + (item.modelo ? " - " + item.modelo : "");
+
+  var formatarR$ = function(val) {
+    return Number(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
+  var disponivel = item.estoque > 0;
+  var statusCor = disponivel ? "#00e676" : "#ff5252";
+  var statusTexto = disponivel ? "🟢 DISPONÍVEL" : "🔴 INDISPONÍVEL";
+
+  var codSeguro = String(item.codigo).replace(/'/g, "\\'");
+  var descSegura = String(item.descricao).replace(/'/g, "\\'");
+  
+  var perfil = String(perfilLogado || "").trim().toUpperCase();
+  var ehAdmin = (perfil === "ADMIN");
+
+  var urlImagemTratada = formatarUrlDrive(item.imagem);
+
+  var htmlImagem = urlImagemTratada 
+    ? `<div style="text-align: center; margin-bottom: 15px;">
+         <img src="${urlImagemTratada}" 
+              onerror="this.style.display='none'" 
+              style="max-width: 100%; max-height: 180px; object-fit: contain; border-radius: 10px; background: #2a2a2a; padding: 5px;" 
+              alt="Imagem do Produto">
+       </div>`
+    : '';
+
+  var html = `
+    <div class="card" style="background: #181818; color: #fff; padding: 20px; border-radius: 12px; border: 1px solid #2a2a2a; margin-top: 10px;">
+      
+      ${htmlImagem}
+
+      <h2 style="text-align: center; margin-top: 0; margin-bottom: 15px; font-size: 1.3em;">${item.descricao}</h2>
+
+      <div style="font-size: 0.95em; line-height: 1.8; margin-bottom: 20px;">
+        <div style="color: ${statusCor}; font-weight: bold; margin-bottom: 5px;">${statusTexto}</div>
+        <div><b>Código:</b> ${item.codigo}</div>
+        <div>📱 <b>Modelo:</b> ${item.modelo || '-'}</div>
+        <div>📦 <b>Estoque:</b> ${item.estoque}</div>
+        <div>🔄 <b>Compatível:</b> ${item.compatibilidade || '-'}</div>
+        ${ehAdmin ? `<div>💰 <b>Custo:</b> ${formatarR$(item.custo)}</div>` : ''}
+        <div>🔧 <b>Técnico:</b> ${formatarR$(item.tecnico)}</div>
+        <div>📱 <b>Cliente:</b> ${formatarR$(item.cliente)}</div>
+      </div>
+
+      <button onclick="fazerMovimentacao('Entrada', '${codSeguro}', '${descSegura}')" style="width: 100%; background: #2e7d32; color: white; border: none; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 1em; cursor: pointer; margin-bottom: 10px;">➕ Entrada</button>
+      <button onclick="fazerMovimentacao('Saída', '${codSeguro}', '${descSegura}')" style="width: 100%; background: #2e7d32; color: white; border: none; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 1em; cursor: pointer; margin-bottom: 10px;">➖ Saída</button>
+      <button onclick="exibirQRCodeProduto('${codSeguro}', '${descSegura}')" style="width: 100%; background: #8b5cf6; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; margin-bottom: 10px; cursor: pointer;">🔲 Gerar QR Code</button>
+
+      ${ehAdmin ? `
+        <button onclick="abrirModalEdicao(${index})" style="width: 100%; background: #0284c7; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 0.9em; cursor: pointer; margin-bottom: 8px;">✏️ Editar Produto</button>
+        <button onclick="confirmarExclusao('${codSeguro}', '${descSegura}')" style="width: 100%; background: #dc2626; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 0.9em; cursor: pointer;">🗑️ Excluir Produto</button>
+      ` : ''}
+    </div>
+  `;
+
+  document.getElementById("resultados").innerHTML = html;
+}
+
+function fazerMovimentacao(tipo, codigo, descricao) {
+  var qtd = prompt("Digite a quantidade para " + tipo + ":", "1");
+  if (qtd === null) return;
+  
+  qtd = Number(qtd);
+  if (isNaN(qtd) || qtd <= 0) {
+    alert("⚠️ Digite uma quantidade válida!");
+    return;
+  }
+
+  var observacao = prompt("Observação (opcional):", "") || "";
+
+  exibirLoader("Registrando " + tipo + "...");
+
+  google.script.run
+    .withSuccessHandler(function(resposta) {
+      ocultarLoader();
+      if (resposta && resposta.sucesso) {
+        alert("✅ " + tipo + " realizada com sucesso!\nNovo Estoque: " + resposta.estoque);
+        document.getElementById("busca").value = "";
+        document.getElementById("resultados").innerHTML = "";
+        document.getElementById("listaSugestoes").style.display = "none";
+        carregarDashboard();
+      } else {
+        alert("❌ Erro: " + (resposta ? resposta.mensagem : "Não foi possível concluir."));
+      }
+    })
+    .withFailureHandler(function(erro) {
+      ocultarLoader();
+      alert("❌ Erro no servidor: " + erro.message);
+    })
+    .registrarMovimentacao(tipo, codigo, descricao, qtd, usuarioLogado, lojaLogada, observacao);
+}
+
+function salvarNovoProduto() {
+  var desc = document.getElementById("cadDescricao").value.trim();
+  var cod = document.getElementById("cadCodigo").value.trim();
+
+  if (!desc || !cod) {
+    alert("⚠️ Por favor, preencha a Descrição e o Código do produto!");
+    return;
+  }
+
+  var novoProduto = {
+    descricao: desc,
+    codigo: cod,
+    marca: document.getElementById("cadMarca").value.trim(),
+    modelo: document.getElementById("cadModelo").value.trim(),
+    compatibilidade: document.getElementById("cadCompatibilidade").value.trim(),
+    estoque: document.getElementById("cadEstoque").value,
+    minimo: document.getElementById("cadMinimo").value,
+    custo: document.getElementById("cadCusto").value,
+    tecnico: document.getElementById("cadTecnico").value,
+    cliente: document.getElementById("cadCliente").value
+  };
+
+  exibirLoader("Cadastrando produto...");
+
+  google.script.run
+    .withSuccessHandler(function(resposta) {
+      ocultarLoader();
+      if (resposta && resposta.sucesso) {
+        alert("✅ " + resposta.mensagem);
+        fecharModalCadastro();
+        carregarDashboard();
+      } else {
+        alert("❌ " + (resposta ? resposta.mensagem : "Erro ao salvar produto."));
+      }
+    })
+    .withFailureHandler(function(erro) {
+      ocultarLoader();
+      alert("❌ Erro no servidor: " + erro.message);
+    })
+    .cadastrarProduto(novoProduto);
+}
+
+function abrirModalCadastro() {
+  var perfil = String(perfilLogado || "").trim().toUpperCase();
+  if (perfil !== "ADMIN") return;
+  document.getElementById("modalCadastro").style.display = "flex";
+}
+
+function fecharModalCadastro() {
+  document.getElementById("modalCadastro").style.display = "none";
+  document.getElementById("cadDescricao").value = "";
+  document.getElementById("cadCodigo").value = "";
+  document.getElementById("cadMarca").value = "";
+  document.getElementById("cadModelo").value = "";
+  document.getElementById("cadCompatibilidade").value = "";
+  document.getElementById("cadEstoque").value = "0";
+  document.getElementById("cadMinimo").value = "1";
+  document.getElementById("cadCusto").value = "";
+  document.getElementById("cadTecnico").value = "";
+  document.getElementById("cadCliente").value = "";
+}
+
+function abrirModalEdicao(index) {
+  var item = listaProdutosCache[index];
+  if (!item) return;
+
+  document.getElementById("editCodigoOriginal").value = item.codigo;
+  document.getElementById("editCodigo").value = item.codigo;
+  document.getElementById("editDescricao").value = item.descricao || "";
+  document.getElementById("editMarca").value = item.marca || "";
+  document.getElementById("editModelo").value = item.modelo || "";
+  document.getElementById("editCompatibilidade").value = item.compatibilidade || "";
+  document.getElementById("editEstoque").value = item.estoque || 0;
+  document.getElementById("editMinimo").value = item.minimo || 1;
+  document.getElementById("editCusto").value = item.custo || "";
+  document.getElementById("editTecnico").value = item.tecnico || "";
+  document.getElementById("editCliente").value = item.cliente || "";
+
+  document.getElementById("modalEdicao").style.display = "flex";
+}
+
+function fecharModalEdicao() {
+  document.getElementById("modalEdicao").style.display = "none";
+}
+
+function salvarAlteracaoProduto() {
+  var desc = document.getElementById("editDescricao").value.trim();
+  var cod = document.getElementById("editCodigoOriginal").value.trim();
+
+  if (!desc) {
+    alert("⚠️ A Descrição do produto não pode ficar vazia!");
+    return;
+  }
+
+  var produtoEditado = {
+    codigo: cod,
+    descricao: desc,
+    marca: document.getElementById("editMarca").value.trim(),
+    modelo: document.getElementById("editModelo").value.trim(),
+    compatibilidade: document.getElementById("editCompatibilidade").value.trim(),
+    estoque: document.getElementById("editEstoque").value,
+    minimo: document.getElementById("editMinimo").value,
+    custo: document.getElementById("editCusto").value,
+    tecnico: document.getElementById("editTecnico").value,
+    cliente: document.getElementById("editCliente").value
+  };
+
+  exibirLoader("Salvando alterações...");
+
+  google.script.run
+    .withSuccessHandler(function(resposta) {
+      ocultarLoader();
+      if (resposta && resposta.sucesso) {
+        alert("✅ " + resposta.mensagem);
+        fecharModalEdicao();
+        limparResultados();
+        carregarDashboard();
+      } else {
+        alert("❌ " + (resposta ? resposta.mensagem : "Erro ao atualizar produto."));
+      }
+    })
+    .withFailureHandler(function(erro) {
+      ocultarLoader();
+      alert("❌ Erro no servidor: " + erro.message);
+    })
+    .salvarEdicaoProduto(produtoEditado);
+}
+
+function relatorio() {
+  var dias = prompt("Digite o período do relatório em dias (ex: 7 ou 30):", "30");
+  if (dias === null) return;
+  
+  dias = Number(dias);
+  if (isNaN(dias) || dias <= 0) {
+    alert("⚠️ Digite um número válido de dias!");
+    return;
+  }
+
+  limparResultados();
+  exibirLoader("Carregando relatório...");
+
+  google.script.run
+    .withSuccessHandler(function(dados) {
+      ocultarLoader();
+      
+      if (!dados || (!dados.estoqueAtual && !dados.movimentacoes)) {
+        alert("Nenhum dado encontrado para o período.");
+        return;
+      }
+
+      var html = `
+        <div class="card">
+          <h2>📊 Relatório (${dias} dias)</h2>
+        </div>
+      `;
+
+      html += `<div class="card"><h3>🔄 Movimentações Recentes (${dados.movimentacoes ? dados.movimentacoes.length : 0})</h3>`;
+      if (!dados.movimentacoes || dados.movimentacoes.length === 0) {
+        html += `<p style="color:#aaa;">Nenhuma movimentação no período.</p>`;
+      } else {
+        dados.movimentacoes.forEach(function(m) {
+          var dataFormatada = new Date(m.data).toLocaleDateString('pt-BR');
+          var corTipo = m.tipo === "Entrada" ? "#00e676" : "#ff5252";
+          
+          html += `
+            <div style="border-bottom: 1px solid #333; padding: 8px 0;">
+              <div><b style="color: ${corTipo};">${m.tipo}</b> - ${m.quantidade}x <b>${m.descricao}</b></div>
+              <div style="font-size: 0.8em; color: #aaa;">Data: ${dataFormatada} | Loja: ${m.loja} | Usuário: ${m.usuario}</div>
+              ${m.observacao ? `<div style="font-size: 0.8em; color: #888;">Obs: ${m.observacao}</div>` : ''}
+            </div>
+          `;
         });
-    }
+      }
+      html += `</div>`;
 
-    // ABRIR CÂMERA AO VIVO (SEM IRAME)
-    function abrirLeitorQR(tipo) {
-      qrOperacao = tipo;
-      document.getElementById("tituloCamAoVivo").innerText = "📷 Escaneie para " + tipo;
-      document.getElementById("modalCameraAoVivo").style.display = "flex";
+      document.getElementById("resultados").innerHTML = html;
+    })
+    .withFailureHandler(function(erro) {
+      ocultarLoader();
+      alert("❌ Erro ao gerar relatório: " + erro.message);
+    })
+    .gerarRelatorio(dias);
+}
 
-      var video = document.getElementById("videoCam");
+function confirmarExclusao(codigo, descricao) {
+  var perfil = String(perfilLogado || "").trim().toUpperCase();
+  if (perfil !== "ADMIN") {
+    alert("⚠️ Apenas administradores podem excluir produtos.");
+    return;
+  }
 
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } })
-        .then(function(stream) {
-          streamCamera = stream;
-          video.srcObject = stream;
-          video.setAttribute("playsinline", true);
-          video.play();
-          animacaoFrame = requestAnimationFrame(escanearQuadroVideo);
-        })
-        .catch(function(err) {
-          alert("❌ Não foi possível acessar a câmera: " + err.message);
-          pararCameraETempoReal();
-        });
-    }
+  if (confirm("⚠️ Tem certeza de que deseja excluir permanentemente o produto abaixo?\n\n" + descricao + " (Cód: " + codigo + ")")) {
+    exibirLoader("Excluindo produto...");
 
-    // PROCESSAR QUADROS DA CÂMERA EM TEMPO REAL
-    function escanearQuadroVideo() {
-      var video = document.getElementById("videoCam");
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        var canvas = document.getElementById("canvasAux");
-        var ctx = canvas.getContext("2d");
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
-
-        if (code && code.data) {
-          var codigoLido = String(code.data).trim();
-          pararCameraETempoReal();
-          processarCodigoQR(codigoLido);
-          return;
+    google.script.run
+      .withSuccessHandler(function(res) {
+        ocultarLoader();
+        if (res && res.sucesso) {
+          alert("✅ " + res.mensagem);
+          limparResultados();
+          carregarDashboard();
+        } else {
+          alert("❌ " + (res ? res.mensagem : "Erro ao excluir produto."));
         }
-      }
-      animacaoFrame = requestAnimationFrame(escanearQuadroVideo);
-    }
+      })
+      .withFailureHandler(function(erro) {
+        ocultarLoader();
+        alert("❌ Erro no servidor: " + erro.message);
+      })
+      .excluirProduto(codigo);
+  }
+}
+</script>
 
-    // DESLIGAR CÂMERA
-    function pararCameraETempoReal() {
-      if (animacaoFrame) cancelAnimationFrame(animacaoFrame);
-      if (streamCamera) {
-        streamCamera.getTracks().forEach(track => track.stop());
-        streamCamera = null;
-      }
-      document.getElementById("modalCameraAoVivo").style.display = "none";
-    }
-
-    // PROCESSAR O CÓDIGO ENCONTRADO
-    function processarCodigoQR(codigo) {
-      chamarBackend("buscarProdutoPorCodigoExato", { codigo: codigo })
-        .then(produto => {
-          if (produto) {
-            alert("✅ Produto " + qrOperacao + ": " + JSON.stringify(produto));
-          } else {
-            alert("❌ Produto não encontrado para o código: " + codigo);
-          }
-        })
-        .catch(err => alert("Erro ao buscar produto."));
-    }
-  </script>
 </body>
 </html>
