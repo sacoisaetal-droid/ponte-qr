@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Leitor QR - Tempo Real</title>
-  <!-- Biblioteca para leitura de câmera em tempo real -->
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body {
@@ -42,47 +41,53 @@
     <h2>📷 Leitor de QR Code</h2>
     <p>Aponte a câmera para o código da peça</p>
     
-    <!-- ÁREA ONDE A CÂMERA DE VÍDEO APARECE -->
     <div id="reader"></div>
     
     <div id="status" class="status">Iniciando câmera...</div>
   </div>
 
   <script>
-    // 1. Captura os parâmetros enviados pelo Apps Script
+    // Captura os parâmetros recebidos na URL
     const urlParams = new URLSearchParams(window.location.search);
     const redirectUrl = urlParams.get('returnUrl');
     const tipo = urlParams.get('tipo') || 'Saída';
     const usuario = urlParams.get('usuario') || '';
 
-    // 2. Função executada quando o QR Code é lido em tempo real
-    function onScanSuccess(decodedText, decodedResult) {
-      document.getElementById('status').innerText = "✅ Código lido: " + decodedText;
+    function onScanSuccess(decodedText) {
+      document.getElementById('status').innerText = "✅ Código lido: " + decodedText + ". Redirecionando...";
 
-      // Parar o escaneamento para não ler repetidamente
+      // Para a câmera
       html5QrcodeScanner.clear().then(() => {
         if (redirectUrl) {
-          // Redireciona de volta para o Apps Script enviando o código lido
-          const destino = new URL(redirectUrl);
-          destino.searchParams.set('qrCode', decodedText);
-          destino.searchParams.set('tipo', tipo);
-          destino.searchParams.set('usuario', usuario);
-          window.location.href = destino.toString();
+          // Garante a montagem correta da URL de retorno sem quebrar o script
+          const divisor = redirectUrl.includes('?') ? '&' : '?';
+          const destinoFinal = redirectUrl + divisor + 
+            "qrCode=" + encodeURIComponent(decodedText) + 
+            "&tipo=" + encodeURIComponent(tipo) + 
+            "&usuario=" + encodeURIComponent(usuario);
+
+          // Redireciona de volta para o Apps Script
+          window.location.href = destinoFinal;
         } else {
-          alert("Código lido: " + decodedText);
+          alert("QR Code Lido: " + decodedText + "\nURL de retorno não encontrada.");
+        }
+      }).catch(err => {
+        // Redireciona mesmo se houver erro ao parar a câmera
+        if (redirectUrl) {
+          const divisor = redirectUrl.includes('?') ? '&' : '?';
+          window.location.href = redirectUrl + divisor + "qrCode=" + encodeURIComponent(decodedText) + "&tipo=" + encodeURIComponent(tipo);
         }
       });
     }
 
-    // 3. Inicializa o leitor de vídeo em tempo real
     const html5QrcodeScanner = new Html5QrcodeScanner(
       "reader", 
       { 
         fps: 10, 
         qrbox: { width: 250, height: 250 },
-        facingMode: "environment" // Força o uso da câmera traseira
+        facingMode: "environment"
       }, 
-      /* verbose= */ false
+      false
     );
 
     html5QrcodeScanner.render(onScanSuccess);
