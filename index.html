@@ -89,6 +89,24 @@
     );
 
     html5QrcodeScanner.render(onScanSuccess);
+
+    function onScanSuccess(decodedText) {
+  if (processando) return;
+  processando = true;
+
+  document.getElementById('status').innerText = "✅ Lido! Retornando...";
+
+  if (redirectUrl) {
+    // Garante a montagem limpa do parâmetro ?qrCode=
+    const divisor = redirectUrl.includes('?') ? '&' : '?';
+    const linkDestino = redirectUrl + divisor + 
+      "qrCode=" + encodeURIComponent(decodedText) + 
+      "&tipo=" + encodeURIComponent(tipo);
+
+    // Redireciona limpando a pilha de histórico
+    window.open(linkDestino, '_top');
+  }
+}
   </script>
 </body>
 </html>
