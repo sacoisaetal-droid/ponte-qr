@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ponte QR - MR ESTOQUE</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+    body {
+      background: #121212;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      text-align: center;
+    }
+    .card {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    h2 {
+      margin-bottom: 8px;
+    }
+    p {
+      color: #aaa;
+      font-size: 0.95em;
+      margin-bottom: 20px;
+    }
+    .btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #fff;
+      cursor: pointer;
+      margin-bottom: 12px;
+      transition: opacity 0.2s;
+    }
+    .btn:active {
+      opacity: 0.8;
+    }
+    .btn-camera {
+      background: #8b5cf6;
+    }
+    .btn-cancelar {
+      background: #dc2626;
+    }
+    #status {
+      margin-top: 15px;
+      font-size: 0.9em;
+      color: #ffcc00;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2 id="titulo">📷 Ponte QR</h2>
+    <p id="subtitulo">Aponte a câmera para o QR Code da peça</p>
+
+    <button class="btn btn-camera" onclick="abrirCamera()">📷 Abrir Câmera / Esquinhar</button>
+
+    <input type="file" id="inputCamera" accept="image/*" capture="environment" style="display: none;" onchange="processarFoto(this)">
+    <canvas id="canvas" style="display: none;"></canvas>
+
+    <p id="status"></p>
+
+    <button class="btn btn-cancelar" onclick="voltarSemCodigo()">❌ Cancelar e Voltar</button>
+  </div>
+
+  <script>
+    var urlParams = new URLSearchParams(window.location.search);
+    var tipoOperacao = urlParams.get("tipo") || "SAIDA";
+    var urlRetorno = urlParams.get("retorno") || "";
+
+    document.getElementById("titulo").innerText = (tipoOperacao.toUpperCase() === "SAIDA") ? "➖ Saída por QR Code" : "➕ Entrada por QR Code";
+
+    function abrirCamera() {
+      document.getElementById("inputCamera").click();
+    }
+
+    function processarFoto(input) {
+      if (!input.files || !input.files[0]) return;
+
+      document.getElementById("status").innerText = "🔎 Lendo QR Code...";
+
+      var arquivo = input.files[0];
+      var imagem = new Image();
+      var url = URL.createObjectURL(arquivo);
+
+      imagem.onload = function() {
+        try {
+          var canvas = document.getElementById("canvas");
+          var ctx = canvas.getContext("2d", { willReadFrequently: true });
+          
+          var maxDim = 1800;
+          var escala = Math.min(1, maxDim / Math.max(imagem.naturalWidth, imagem.naturalHeight));
+          canvas.width = Math.max(1, Math.round(imagem.naturalWidth * escala));
+          canvas.height = Math.max(1, Math.round(imagem.naturalHeight * escala));
+          
+          ctx.drawImage(imagem, 0, 0, canvas.width, canvas.height);
+
+          var dados = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          var resultado = jsQR(dados.data, dados.width, dados.height, { inversionAttempts: "attemptBoth" });
+          
+          URL.revokeObjectURL(url);
+
+          if (resultado && resultado.data) {
+            var codigoLido = String(resultado.data).trim();
+            retornarParaApp(codigoLido);
+          } else {
+            document.getElementById("status").innerText = "❌ QR Code não reconhecido. Tente aproximar a câmera.";
+          }
+        } catch (e) {
+          URL.revokeObjectURL(url);
+          document.getElementById("status").innerText = "❌ Erro ao ler a imagem.";
+        }
+      };
+
+      imagem.onerror = function() {
+        URL.revokeObjectURL(url);
+        document.getElementById("status").innerText = "❌ Erro ao carregar a imagem.";
+      };
+
+      imagem.src = url;
+    }
+
+    function retornarParaApp(codigo) {
+      if (!urlRetorno) {
+        alert("Erro: URL de retorno não identificada.");
+        return;
+      }
+      var separador = urlRetorno.includes("?") ? "&" : "?";
+      var destino = urlRetorno + separador + "codigo=" + encodeURIComponent(codigo) + "&tipo=" + encodeURIComponent(tipoOperacao);
+      window.location.href = destino;
+    }
+
+    function voltarSemCodigo() {
+      if (urlRetorno) {
+        window.location.href = urlRetorno;
+      } else {
+        window.history.back();
+      }
+    }
+  </script>
+
+</body>
+</html>
