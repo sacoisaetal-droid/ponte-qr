@@ -47,10 +47,8 @@
   </div>
 
   <script>
-    // Flag para evitar múltiplos disparos simultâneos
     let processando = false;
 
-    // Resgata os parâmetros da URL
     const urlParams = new URLSearchParams(window.location.search);
     const redirectUrl = urlParams.get('returnUrl');
     const tipo = urlParams.get('tipo') || 'Saída';
@@ -60,18 +58,21 @@
       if (processando) return;
       processando = true;
 
-      document.getElementById('status').innerText = "✅ Lido: " + decodedText + "\nVoltando para o App...";
+      document.getElementById('status').innerText = "✅ Lido: " + decodedText + "\nVoltando...";
 
       if (redirectUrl) {
-        // Formata a URL de retorno de forma limpa
         const divisor = redirectUrl.includes('?') ? '&' : '?';
         const linkDestino = redirectUrl + divisor + 
           "qrCode=" + encodeURIComponent(decodedText) + 
           "&tipo=" + encodeURIComponent(tipo) + 
           "&usuario=" + encodeURIComponent(usuario);
 
-        // Força a navegação direta e imediata sem esperar o encerramento do leitor
-        window.location.replace(linkDestino);
+        // FORÇA A NAVEGAÇÃO NA JANELA PRINCIPAL (FORA DO IFRAME)
+        if (window.top) {
+          window.top.location.href = linkDestino;
+        } else {
+          window.location.href = linkDestino;
+        }
       } else {
         alert("Código: " + decodedText + "\nURL de retorno não encontrada.");
       }
